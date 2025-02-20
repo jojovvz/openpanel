@@ -177,18 +177,4 @@ services:
       - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
       - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.entryPoints=http
       - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.middlewares=redirect-to-https
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.rule=Host(`openpanel.${COOLIFY_DOMAIN}`) && PathPrefix(`/`)
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.entryPoints=https
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.middlewares=gzip
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.rule=Host(`openpanel.${COOLIFY_DOMAIN}`) && PathPrefix(`/`)
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.tls.certresolver=letsencrypt
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.tls=true
-
-volumes:
-  db_data:
-  redis_data:
-  clickhouse_data:
-  clickhouse_logs:
-  app_data:
-  selfhosting_data:
-  logs:
+      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.rule=Host(`openpanel.${ 
