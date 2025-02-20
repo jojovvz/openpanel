@@ -6,9 +6,9 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
       - COOLIFY_BRANCH=${COOLIFY_BRANCH}
       - COOLIFY_RESOURCE_UUID=${COOLIFY_RESOURCE_UUID}
       - COOLIFY_CONTAINER_NAME=${COOLIFY_CONTAINER_NAME}
