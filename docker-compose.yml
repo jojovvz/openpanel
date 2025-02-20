@@ -6,27 +6,18 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=\$SERVICE_USER_POSTGRES
-      - POSTGRES_PASSWORD=\$SERVICE_PASSWORD_POSTGRES
-      - POSTGRES_DB=${DB_NAME:-postgres}
-      - COOLIFY_BRANCH=${COOLIFY_BRANCH}
-      - COOLIFY_RESOURCE_UUID=${COOLIFY_RESOURCE_UUID}
-      - COOLIFY_CONTAINER_NAME=${COOLIFY_CONTAINER_NAME}
+      - POSTGRES_USER=$SERVICE_USER_POSTGRES
+      - POSTGRES_PASSWORD=$SERVICE_PASSWORD_POSTGRES
+      - POSTGRES_DB=postgres
+      - COOLIFY_BRANCH=$COOLIFY_BRANCH
+      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
+      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
-    container_name: op-db-${COOLIFY_RESOURCE_UUID}
-    labels:
-      - coolify.managed=true
-      - coolify.version=4.0.0
-      - coolify.applicationId=${COOLIFY_APPLICATION_ID}
-      - coolify.type=application
-      - coolify.name=op-db-${COOLIFY_RESOURCE_UUID}
-      - coolify.resourceName=${COOLIFY_RESOURCE_NAME}
-      - coolify.projectName=${COOLIFY_PROJECT_NAME}
-      - coolify.environmentName=${COOLIFY_ENVIRONMENT_NAME}
+    container_name: op-db-$COOLIFY_RESOURCE_UUID
 
   op-kv:
     image: redis:7.2.5-alpine
@@ -39,20 +30,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    container_name: op-kv-${COOLIFY_RESOURCE_UUID}
-    labels:
-      - coolify.managed=true
-      - coolify.version=4.0.0
-      - coolify.applicationId=${COOLIFY_APPLICATION_ID}
-      - coolify.type=application
-      - coolify.name=op-kv-${COOLIFY_RESOURCE_UUID}
-      - coolify.resourceName=${COOLIFY_RESOURCE_NAME}
-      - coolify.projectName=${COOLIFY_PROJECT_NAME}
-      - coolify.environmentName=${COOLIFY_ENVIRONMENT_NAME}
+    container_name: op-kv-$COOLIFY_RESOURCE_UUID
     environment:
-      - COOLIFY_BRANCH=${COOLIFY_BRANCH}
-      - COOLIFY_RESOURCE_UUID=${COOLIFY_RESOURCE_UUID}
-      - COOLIFY_CONTAINER_NAME=${COOLIFY_CONTAINER_NAME}
+      - COOLIFY_BRANCH=$COOLIFY_BRANCH
+      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
+      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
 
   op-geo:
     image: observabilitystack/geoip-api:latest
@@ -62,33 +44,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    container_name: op-geo-${COOLIFY_RESOURCE_UUID}
-    labels:
-      - coolify.managed=true
-      - coolify.version=4.0.0
-      - coolify.applicationId=${COOLIFY_APPLICATION_ID}
-      - coolify.type=application
-      - coolify.name=op-geo-${COOLIFY_RESOURCE_UUID}
-      - coolify.resourceName=${COOLIFY_RESOURCE_NAME}
-      - coolify.projectName=${COOLIFY_PROJECT_NAME}
-      - coolify.environmentName=${COOLIFY_ENVIRONMENT_NAME}
-      - traefik.enable=true
-      - traefik.http.middlewares.gzip.compress=true
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-op-geo.entryPoints=http
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-op-geo.middlewares=redirect-to-https
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-op-geo.rule=Host(`opgeo.${COOLIFY_DOMAIN}`) && PathPrefix(`/`)
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-op-geo.entryPoints=https
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-op-geo.middlewares=gzip
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-op-geo.rule=Host(`opgeo.${COOLIFY_DOMAIN}`) && PathPrefix(`/`)
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-op-geo.tls.certresolver=letsencrypt
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-op-geo.tls=true
+    container_name: op-geo-$COOLIFY_RESOURCE_UUID
     environment:
-      - COOLIFY_BRANCH=${COOLIFY_BRANCH}
-      - COOLIFY_RESOURCE_UUID=${COOLIFY_RESOURCE_UUID}
-      - COOLIFY_CONTAINER_NAME=${COOLIFY_CONTAINER_NAME}
-      - COOLIFY_URL=https://opgeo.${COOLIFY_DOMAIN}
-      - COOLIFY_FQDN=opgeo.${COOLIFY_DOMAIN}
+      - COOLIFY_BRANCH=$COOLIFY_BRANCH
+      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
+      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
+      - COOLIFY_URL=https://opgeo.$COOLIFY_DOMAIN
+      - COOLIFY_FQDN=opgeo.$COOLIFY_DOMAIN
 
   op-ch:
     image: clickhouse/clickhouse-server:24.3.2-alpine
@@ -106,24 +68,15 @@ services:
     environment:
       - CLICKHOUSE_DB=openpanel
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
-      - COOLIFY_BRANCH=${COOLIFY_BRANCH}
-      - COOLIFY_RESOURCE_UUID=${COOLIFY_RESOURCE_UUID}
-      - COOLIFY_CONTAINER_NAME=${COOLIFY_CONTAINER_NAME}
+      - COOLIFY_BRANCH=$COOLIFY_BRANCH
+      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
+      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
       interval: 30s
       timeout: 10s
       retries: 3
-    container_name: op-ch-${COOLIFY_RESOURCE_UUID}
-    labels:
-      - coolify.managed=true
-      - coolify.version=4.0.0
-      - coolify.applicationId=${COOLIFY_APPLICATION_ID}
-      - coolify.type=application
-      - coolify.name=op-ch-${COOLIFY_RESOURCE_UUID}
-      - coolify.resourceName=${COOLIFY_RESOURCE_NAME}
-      - coolify.projectName=${COOLIFY_PROJECT_NAME}
-      - coolify.environmentName=${COOLIFY_ENVIRONMENT_NAME}
+    container_name: op-ch-$COOLIFY_RESOURCE_UUID
 
   openpanel:
     image: ${COOLIFY_IMAGE_NAME:-jojovvz/openpanel:main}
@@ -139,13 +92,13 @@ services:
         condition: service_healthy
     environment:
       - REDIS_URL=redis://op-kv:6379
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@op-db:5432/${DB_NAME:-postgres}?schema=public
-      - DOMAIN=${COOLIFY_FQDN}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
-      - ALLOW_INVITATION=${ALLOW_INVITATION:-true}
-      - NEXT_PUBLIC_DASHBOARD_URL=https://${COOLIFY_FQDN}
-      - NEXT_PUBLIC_API_URL=https://${COOLIFY_FQDN}/api
+      - DATABASE_URL=postgresql://postgres:postgres@op-db:5432/postgres?schema=public
+      - DOMAIN=$COOLIFY_FQDN
+      - RESEND_API_KEY=$RESEND_API_KEY
+      - ALLOW_REGISTRATION=false
+      - ALLOW_INVITATION=true
+      - NEXT_PUBLIC_DASHBOARD_URL=https://$COOLIFY_FQDN
+      - NEXT_PUBLIC_API_URL=https://$COOLIFY_FQDN/api
       - WORKER_PORT=9999
       - API_PORT=3333
       - BATCH_SIZE=5000
@@ -153,36 +106,16 @@ services:
       - CONCURRENCY=10
       - SERVICE_FQDN_OPENPANEL=/api
       - SERVICE_FQDN_OPENPANEL_3333=/api
-      - COOLIFY_FQDN=openpanel.${COOLIFY_DOMAIN}
-      - COOLIFY_BRANCH=${COOLIFY_BRANCH}
-      - COOLIFY_RESOURCE_UUID=${COOLIFY_RESOURCE_UUID}
-      - COOLIFY_CONTAINER_NAME=${COOLIFY_CONTAINER_NAME}
-      - COOLIFY_URL=https://openpanel.${COOLIFY_DOMAIN}
+      - COOLIFY_FQDN=openpanel.$COOLIFY_DOMAIN
+      - COOLIFY_BRANCH=$COOLIFY_BRANCH
+      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
+      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
+      - COOLIFY_URL=https://openpanel.$COOLIFY_DOMAIN
     volumes:
       - app_data:/app/data
       - selfhosting_data:/app/self-hosting/data
       - logs:/app/logs
-    container_name: openpanel-${COOLIFY_RESOURCE_UUID}
-    labels:
-      - coolify.managed=true
-      - coolify.version=4.0.0
-      - coolify.applicationId=${COOLIFY_APPLICATION_ID}
-      - coolify.type=application
-      - coolify.name=openpanel-${COOLIFY_RESOURCE_UUID}
-      - coolify.resourceName=${COOLIFY_RESOURCE_NAME}
-      - coolify.projectName=${COOLIFY_PROJECT_NAME}
-      - coolify.environmentName=${COOLIFY_ENVIRONMENT_NAME}
-      - traefik.enable=true
-      - traefik.http.middlewares.gzip.compress=true
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.entryPoints=http
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.middlewares=redirect-to-https
-      - traefik.http.routers.http-${COOLIFY_RESOURCE_UUID}-openpanel.rule=Host(`openpanel.${COOLIFY_DOMAIN}`) && PathPrefix(`/`)
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.entryPoints=https
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.middlewares=gzip
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.rule=Host(`openpanel.${COOLIFY_DOMAIN}`) && PathPrefix(`/`)
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.tls.certresolver=letsencrypt
-      - traefik.http.routers.https-${COOLIFY_RESOURCE_UUID}-openpanel.tls=true
+    container_name: openpanel-$COOLIFY_RESOURCE_UUID
 
 volumes:
   db_data:
