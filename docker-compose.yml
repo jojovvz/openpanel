@@ -6,9 +6,9 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=$SERVICE_USER_POSTGRES
-      - POSTGRES_PASSWORD=$SERVICE_PASSWORD_POSTGRES
-      - POSTGRES_DB=$DB_NAME
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -59,7 +59,7 @@ services:
       retries: 3
 
   openpanel:
-    image: ${COOLIFY_IMAGE_NAME}
+    image: ${COOLIFY_IMAGE_NAME:-jojovvz/openpanel:main}
     restart: always
     depends_on:
       op-db:
@@ -72,11 +72,11 @@ services:
         condition: service_healthy
     environment:
       - REDIS_URL=redis://op-kv:6379
-      - DATABASE_URL
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@op-db:5432/${DB_NAME}?schema=public
       - DOMAIN=${COOLIFY_FQDN}
-      - RESEND_API_KEY
-      - ALLOW_REGISTRATION
-      - ALLOW_INVITATION
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
+      - ALLOW_INVITATION=${ALLOW_INVITATION:-true}
       - NEXT_PUBLIC_DASHBOARD_URL=https://${COOLIFY_FQDN}
       - NEXT_PUBLIC_API_URL=https://${COOLIFY_FQDN}/api
       - WORKER_PORT=9999
