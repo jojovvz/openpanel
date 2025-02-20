@@ -84,6 +84,8 @@ services:
       - BATCH_SIZE=5000
       - BATCH_INTERVAL=10000
       - CONCURRENCY=10
+      - SERVICE_FQDN_OPENPANEL=/api
+      - SERVICE_FQDN_OPENPANEL_3333=/api
     volumes:
       - app_data:/app/data
       - selfhosting_data:/app/self-hosting/data
