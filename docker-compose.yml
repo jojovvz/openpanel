@@ -6,11 +6,11 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-postgres}
+      - POSTGRES_USER=$SERVICE_USER_POSTGRES
+      - POSTGRES_PASSWORD=$SERVICE_PASSWORD_POSTGRES
+      - POSTGRES_DB=openpanel
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,21 +71,22 @@ services:
       op-geo:
         condition: service_healthy
     environment:
+      - SERVICE_FQDN_OPENPANEL_3333
       - REDIS_URL=redis://op-kv:6379
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@op-db:5432/${DB_NAME:-postgres}?schema=public
-      - DATABASE_URL_DIRECT=${DATABASE_URL}
+      - DATABASE_URL=postgresql://$SERVICE_USER_POSTGRES:$SERVICE_PASSWORD_POSTGRES@op-db:5432/openpanel?schema=public
+      - DATABASE_URL_DIRECT=$DATABASE_URL
       - CLICKHOUSE_URL=http://op-ch:8123/openpanel
-      - NEXT_PUBLIC_DASHBOARD_URL=https://${COOLIFY_FQDN}
-      - NEXT_PUBLIC_API_URL=https://${COOLIFY_FQDN}/api
+      - NEXT_PUBLIC_DASHBOARD_URL=https://$COOLIFY_FQDN
+      - NEXT_PUBLIC_API_URL=https://$COOLIFY_FQDN/api
       - WORKER_PORT=9999
       - API_PORT=3333
       - BATCH_SIZE=5000
       - BATCH_INTERVAL=10000
       - CONCURRENCY=10
-      - DOMAIN=${COOLIFY_FQDN}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
-      - ALLOW_INVITATION=${ALLOW_INVITATION:-true}
+      - DOMAIN=$COOLIFY_FQDN
+      - RESEND_API_KEY=$SERVICE_RESEND_API_KEY
+      - ALLOW_REGISTRATION=false
+      - ALLOW_INVITATION=true
     volumes:
       - app_data:/app/data
       - selfhosting_data:/app/self-hosting/data
