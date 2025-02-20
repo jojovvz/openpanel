@@ -1,127 +1,46 @@
 version: '3'
+
 services:
   op-db:
     image: postgres:14-alpine
     restart: always
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ./docker/data/op-db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
     environment:
-      - POSTGRES_USER=$SERVICE_USER_POSTGRES
-      - POSTGRES_PASSWORD=$SERVICE_PASSWORD_POSTGRES
-      - POSTGRES_DB=postgres
-      - COOLIFY_BRANCH=$COOLIFY_BRANCH
-      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
-      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    container_name: op-db-$COOLIFY_RESOURCE_UUID
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
 
   op-kv:
     image: redis:7.2.5-alpine
     restart: always
     volumes:
-      - redis_data:/data
-    command: redis-server --maxmemory-policy noeviction --notify-keyspace-events AKE
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    container_name: op-kv-$COOLIFY_RESOURCE_UUID
-    environment:
-      - COOLIFY_BRANCH=$COOLIFY_BRANCH
-      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
-      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
+      - ./docker/data/op-kv-data:/data
+    command: [ 'redis-server', '--maxmemory-policy', 'noeviction' ]
+    ports:
+      - 6379:6379
 
   op-geo:
     image: observabilitystack/geoip-api:latest
     restart: always
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    container_name: op-geo-$COOLIFY_RESOURCE_UUID
-    environment:
-      - COOLIFY_BRANCH=$COOLIFY_BRANCH
-      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
-      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
-      - COOLIFY_URL=https://opgeo.$COOLIFY_DOMAIN
-      - COOLIFY_FQDN=opgeo.$COOLIFY_DOMAIN
+    ports:
+      - 8080:8080
 
   op-ch:
     image: clickhouse/clickhouse-server:24.3.2-alpine
     restart: always
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-      - ./self-hosting/clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/op-config.xml:ro
-      - ./self-hosting/clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/op-user-config.xml:ro
+      - ./docker/data/op-ch-data:/var/lib/clickhouse
+      - ./docker/data/op-ch-logs:/var/log/clickhouse-server
+      - ./self-hosting/clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/op-config.xml
+      - ./self-hosting/clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/op-user-config.xml
       - ./self-hosting/clickhouse/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
-    environment:
-      - CLICKHOUSE_DB=openpanel
-      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
-      - COOLIFY_BRANCH=$COOLIFY_BRANCH
-      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
-      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    container_name: op-ch-$COOLIFY_RESOURCE_UUID
-
-  openpanel:
-    image: ${COOLIFY_IMAGE_NAME:-jojovvz/openpanel:main}
-    restart: always
-    depends_on:
-      op-db:
-        condition: service_healthy
-      op-kv:
-        condition: service_healthy
-      op-ch:
-        condition: service_healthy
-      op-geo:
-        condition: service_healthy
-    environment:
-      - REDIS_URL=redis://op-kv:6379
-      - DATABASE_URL=postgresql://postgres:postgres@op-db:5432/postgres?schema=public
-      - DOMAIN=$COOLIFY_FQDN
-      - RESEND_API_KEY=$RESEND_API_KEY
-      - ALLOW_REGISTRATION=false
-      - ALLOW_INVITATION=true
-      - NEXT_PUBLIC_DASHBOARD_URL=https://$COOLIFY_FQDN
-      - NEXT_PUBLIC_API_URL=https://$COOLIFY_FQDN/api
-      - WORKER_PORT=9999
-      - API_PORT=3333
-      - BATCH_SIZE=5000
-      - BATCH_INTERVAL=10000
-      - CONCURRENCY=10
-      - SERVICE_FQDN_OPENPANEL=/api
-      - SERVICE_FQDN_OPENPANEL_3333=/api
-      - COOLIFY_FQDN=openpanel.$COOLIFY_DOMAIN
-      - COOLIFY_BRANCH=$COOLIFY_BRANCH
-      - COOLIFY_RESOURCE_UUID=$COOLIFY_RESOURCE_UUID
-      - COOLIFY_CONTAINER_NAME=$COOLIFY_CONTAINER_NAME
-      - COOLIFY_URL=https://openpanel.$COOLIFY_DOMAIN
-    volumes:
-      - app_data:/app/data
-      - selfhosting_data:/app/self-hosting/data
-      - logs:/app/logs
-    container_name: openpanel-$COOLIFY_RESOURCE_UUID
-
-volumes:
-  db_data:
-  redis_data:
-  clickhouse_data:
-  clickhouse_logs:
-  app_data:
-  selfhosting_data:
-  logs:
+    ports:
+      - "8123:8123" # HTTP interface
+      - "9000:9000" # Native/TCP interface
+      - "9009:9009" # Inter-server communication
