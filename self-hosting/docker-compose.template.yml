@@ -1,20 +1,6 @@
 version: '3'
 
 services:
-  op-proxy:
-    image: caddy:2-alpine
-    restart: always
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - op-proxy-data:/data
-      - op-proxy-config:/config
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-    depends_on:
-      - op-dashboard
-      - op-api
-
   op-db:
     image: postgres:14-alpine
     restart: always
@@ -122,8 +108,4 @@ volumes:
   op-ch-data:
     driver: local
   op-ch-logs:
-    driver: local
-  op-proxy-data:
-    driver: local
-  op-proxy-config:
     driver: local
