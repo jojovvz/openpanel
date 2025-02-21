@@ -1,29 +1,41 @@
 version: '3'
-
 services:
   op-db:
     image: postgres:14-alpine
     restart: always
     volumes:
-      - ./docker/data/op-db-data:/var/lib/postgresql/data
+      - type: bind
+        source: ./docker/data/op-db-data
+        target: /var/lib/postgresql/data
+        is_directory: true
+    environment:
+      - POSTGRES_USER=${SERVICE_USER_POSTGRES}
+      - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}
+      - SERVICE_FQDN_POSTGRES_5432
     ports:
       - 5432:5432
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
 
   op-kv:
     image: redis:7.2.5-alpine
     restart: always
     volumes:
-      - ./docker/data/op-kv-data:/data
-    command: [ 'redis-server', '--maxmemory-policy', 'noeviction' ]
+      - type: bind
+        source: ./docker/data/op-kv-data
+        target: /data
+        is_directory: true
+    command: ['redis-server', '--maxmemory-policy', 'noeviction']
+    environment:
+      - REDIS_PASSWORD=${SERVICE_PASSWORD_REDIS}
+      - SERVICE_FQDN_REDIS_6379
     ports:
       - 6379:6379
 
   op-geo:
     image: observabilitystack/geoip-api:latest
     restart: always
+    environment:
+      - SERVICE_FQDN_GEOIP=/api
+      - SERVICE_URL_GEOIP
     ports:
       - 8080:8080
 
@@ -31,16 +43,60 @@ services:
     image: clickhouse/clickhouse-server:24.3.2-alpine
     restart: always
     volumes:
-      - ./docker/data/op-ch-data:/var/lib/clickhouse
-      - ./docker/data/op-ch-logs:/var/log/clickhouse-server
-      - ./self-hosting/clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/op-config.xml
-      - ./self-hosting/clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/op-user-config.xml
-      - ./self-hosting/clickhouse/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - type: bind
+        source: ./docker/data/op-ch-data
+        target: /var/lib/clickhouse
+        is_directory: true
+      - type: bind
+        source: ./docker/data/op-ch-logs
+        target: /var/log/clickhouse-server
+        is_directory: true
+      - type: bind
+        source: ./self-hosting/clickhouse/clickhouse-config.xml
+        target: /etc/clickhouse-server/config.d/op-config.xml
+        content: |
+          <?xml version="1.0"?>
+          <clickhouse>
+              <logger>
+                  <level>warning</level>
+                  <console>true</console>
+              </logger>
+              <http_port>8123</http_port>
+              <tcp_port>9000</tcp_port>
+              <interserver_http_port>9009</interserver_http_port>
+          </clickhouse>
+      - type: bind
+        source: ./self-hosting/clickhouse/clickhouse-user-config.xml
+        target: /etc/clickhouse-server/users.d/op-user-config.xml
+        content: |
+          <?xml version="1.0"?>
+          <clickhouse>
+              <users>
+                  <default>
+                      <password>${SERVICE_PASSWORD_CLICKHOUSE}</password>
+                      <networks>
+                          <ip>::/0</ip>
+                      </networks>
+                  </default>
+              </users>
+          </clickhouse>
+      - type: bind
+        source: ./self-hosting/clickhouse/init-db.sh
+        target: /docker-entrypoint-initdb.d/init-db.sh
+        content: |
+          #!/bin/bash
+          set -e
+          clickhouse client -n <<-EOSQL
+              CREATE DATABASE IF NOT EXISTS openobserve;
+          EOSQL
+    environment:
+      - SERVICE_FQDN_CLICKHOUSE
+      - CLICKHOUSE_PASSWORD=${SERVICE_PASSWORD_CLICKHOUSE}
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
     ports:
-      - "8123:8123" # HTTP interface
-      - "9000:9000" # Native/TCP interface
-      - "9009:9009" # Inter-server communication
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
