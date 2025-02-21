@@ -38,8 +38,14 @@ services:
       - SERVICE_URL_GEOIP
       - HOST=0.0.0.0
       - PORT=${PORT_GEO:-8081}
+      - JAVA_OPTS=-Xmx512m -Djava.security.egd=file:/dev/./urandom
     ports:
       - "${PORT_GEO:-8081}:8080"
+    volumes:
+      - type: bind
+        source: /data/coolify/applications/${COOLIFY_APP_ID}/config/geoip
+        target: /srv
+        is_directory: true
 
   op-ch:
     image: clickhouse/clickhouse-server:24.3.2-alpine
@@ -54,22 +60,37 @@ services:
         target: /var/log/clickhouse-server
         is_directory: true
       - type: bind
-        source: /data/coolify/applications/${COOLIFY_APP_ID}/config/clickhouse-config.xml
-        target: /etc/clickhouse-server/config.d/op-config.xml
+        source: /data/coolify/applications/${COOLIFY_APP_ID}/config/clickhouse/config.xml
+        target: /etc/clickhouse-server/config.xml
         content: |
           <?xml version="1.0"?>
           <clickhouse>
               <logger>
                   <level>warning</level>
                   <console>true</console>
+                  <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+                  <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
               </logger>
-              <http_port>8123</http_port>
-              <tcp_port>9000</tcp_port>
-              <interserver_http_port>9009</interserver_http_port>
+
+              <http_port>${PORT_CH_HTTP:-8124}</http_port>
+              <tcp_port>${PORT_CH_TCP:-9001}</tcp_port>
+              <interserver_http_port>${PORT_CH_INTER:-9010}</interserver_http_port>
+
+              <listen_host>0.0.0.0</listen_host>
+              
+              <path>/var/lib/clickhouse/</path>
+              <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+              
+              <users_config>users.xml</users_config>
+              <default_profile>default</default_profile>
+              <default_database>default</default_database>
+              
+              <mark_cache_size>5368709120</mark_cache_size>
+              <max_concurrent_queries>100</max_concurrent_queries>
           </clickhouse>
       - type: bind
-        source: /data/coolify/applications/${COOLIFY_APP_ID}/config/clickhouse-user-config.xml
-        target: /etc/clickhouse-server/users.d/op-user-config.xml
+        source: /data/coolify/applications/${COOLIFY_APP_ID}/config/clickhouse/users.xml
+        target: /etc/clickhouse-server/users.xml
         content: |
           <?xml version="1.0"?>
           <clickhouse>
@@ -78,19 +99,36 @@ services:
                       <password>${SERVICE_PASSWORD_CLICKHOUSE}</password>
                       <networks>
                           <ip>::/0</ip>
+                          <ip>0.0.0.0/0</ip>
                       </networks>
+                      <profile>default</profile>
+                      <quota>default</quota>
                   </default>
               </users>
+              
+              <profiles>
+                  <default>
+                      <max_memory_usage>10000000000</max_memory_usage>
+                      <max_memory_usage_for_user>10000000000</max_memory_usage_for_user>
+                      <max_bytes_before_external_group_by>20000000000</max_bytes_before_external_group_by>
+                  </default>
+              </profiles>
+
+              <quotas>
+                  <default>
+                      <interval>
+                          <duration>3600</duration>
+                          <queries>0</queries>
+                          <query_selects>0</query_selects>
+                          <query_inserts>0</query_inserts>
+                          <errors>0</errors>
+                          <result_rows>0</result_rows>
+                          <read_rows>0</read_rows>
+                          <execution_time>0</execution_time>
+                      </interval>
+                  </default>
+              </quotas>
           </clickhouse>
-      - type: bind
-        source: /data/coolify/applications/${COOLIFY_APP_ID}/config/init-db.sh
-        target: /docker-entrypoint-initdb.d/init-db.sh
-        content: |
-          #!/bin/bash
-          set -e
-          clickhouse client -n <<-EOSQL
-              CREATE DATABASE IF NOT EXISTS openobserve;
-          EOSQL
     environment:
       - SERVICE_FQDN_CLICKHOUSE
       - CLICKHOUSE_PASSWORD=${SERVICE_PASSWORD_CLICKHOUSE}
@@ -99,6 +137,6 @@ services:
         soft: 262144
         hard: 262144
     ports:
-      - "${PORT_CH_HTTP:-8123}:8123"
-      - "${PORT_CH_TCP:-9000}:9000"
-      - "${PORT_CH_INTER:-9009}:9009"
+      - "${PORT_CH_HTTP:-8124}:8124"
+      - "${PORT_CH_TCP:-9001}:9001"
+      - "${PORT_CH_INTER:-9010}:9010"
