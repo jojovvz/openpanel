@@ -109,7 +109,4 @@ volumes:
     driver: local
   op-ch-logs:
     driver: local
-  op-proxy-data:
-    driver: local
-  op-proxy-config:
-    driver: local
+
